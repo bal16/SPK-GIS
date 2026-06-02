@@ -1,0 +1,6 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/bal16/next_gis_spk
+[submodule "backend"]
+	path = backend
+	url = https://github.com/bal16/nestjs_gis_spk
