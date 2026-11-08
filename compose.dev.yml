@@ -1,0 +1,148 @@
+# =============================================================================
+# SPK-GIS — Development stack
+# Kompatibel dengan Docker Compose v2 dan podman-compose.
+#
+# Jalankan:
+#   docker compose -f compose.dev.yml up --build
+#   podman-compose -f compose.dev.yml up --build
+#
+# Hot reload aktif:
+#   - frontend : Next.js dev server (HMR)
+#   - backend  : NestJS watch mode (restart otomatis)
+# =============================================================================
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: spk-gis-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-spk_gis}
+    ports:
+      # Hanya bind ke localhost agar tidak terbuka ke jaringan.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-spk_gis}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - spk-gis-dev
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: dev
+    image: spk-gis-backend:dev
+    container_name: spk-gis-dev-backend
+    # Install ulang cepat dari cache, generate Prisma Client, terapkan migrasi,
+    # lalu jalankan watch mode.
+    command:
+      [
+        "sh",
+        "-c",
+        "pnpm install --frozen-lockfile && pnpm db:generate && pnpm exec prisma migrate deploy && pnpm start:dev",
+      ]
+    environment:
+      NODE_ENV: development
+      PORT: "3001"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-spk_gis}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-jwt-refresh-secret}
+      # Cache pnpm di dalam named volume.
+      npm_config_store_dir: /pnpm/store
+    ports:
+      - "3001:3001"
+    volumes:
+      # :Z membuat bind mount kompatibel dengan SELinux (Podman/Fedora).
+      - ./backend:/app:Z
+      # node_modules dan Prisma Client disimpan di volume agar tidak
+      # menimpa folder proyek di host.
+      # Catatan: dist/.next sengaja TIDAK dijadikan volume karena Nest/Next
+      # menghapus direktori output saat start (akan gagal dengan EBUSY).
+      - backend_node_modules:/app/node_modules
+      - backend_generated:/app/src/generated
+      - pnpm_store:/pnpm/store
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      # Beri waktu untuk instalasi dependency + generate Prisma saat pertama kali.
+      start_period: 180s
+    networks:
+      - spk-gis-dev
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      target: dev
+    image: spk-gis-frontend:dev
+    container_name: spk-gis-dev-frontend
+    command:
+      ["sh", "-c", "bun install --frozen-lockfile && bun run dev"]
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Server-side (di dalam jaringan Compose)
+      NEST_API_URL: http://backend:3001
+      # Client-side (dipanggil dari browser di host)
+      NEXT_PUBLIC_NEST_API_URL: ${NEXT_PUBLIC_NEST_API_URL:-http://localhost:3001}
+      # Jika hot reload tidak jalan di Docker Desktop/Windows, aktifkan:
+      # WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app:Z
+      - frontend_node_modules:/app/node_modules
+      - bun_cache:/root/.bun/install/cache
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 30s
+      retries: 10
+      # Kompilasi pertama Next.js dev bisa memakan waktu.
+      start_period: 120s
+    networks:
+      - spk-gis-dev
+
+volumes:
+  pgdata_dev:
+  backend_node_modules:
+  backend_generated:
+  frontend_node_modules:
+  pnpm_store:
+  bun_cache:
+
+networks:
+  spk-gis-dev:

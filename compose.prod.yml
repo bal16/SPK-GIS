@@ -1,0 +1,121 @@
+# =============================================================================
+# SPK-GIS — Production stack
+# Kompatibel dengan Docker Compose v2 dan podman-compose.
+#
+# Sebelum menjalankan:
+#   cp .env.example .env
+#   # ubah POSTGRES_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET,
+#   # dan NEXT_PUBLIC_NEST_API_URL
+#
+# Jalankan:
+#   docker compose -f compose.prod.yml up -d --build
+#   podman-compose -f compose.prod.yml up -d --build
+#
+# Migrasi database dijalankan otomatis saat container backend start.
+# =============================================================================
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: spk-gis-prod-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD di file .env}
+      POSTGRES_DB: ${POSTGRES_DB:-spk_gis}
+    # Port database sengaja tidak dipublikasikan ke host.
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-spk_gis}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - spk-gis-prod
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: runner
+    image: spk-gis-backend:prod
+    container_name: spk-gis-prod-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Gunakan password alfanumerik, atau URL-encode karakter khusus.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-spk_gis}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET di file .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET di file .env}
+    ports:
+      # Backend perlu dapat diakses browser untuk request client-side.
+      # Di belakang reverse proxy, port ini bisa ditutup dan di-proxy.
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - spk-gis-prod
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      target: runner
+      args:
+        # Nilai ini di-bake saat build. Ganti lalu rebuild jika domain berubah.
+        NEXT_PUBLIC_NEST_API_URL: ${NEXT_PUBLIC_NEST_API_URL:-http://localhost:3001}
+    image: spk-gis-frontend:prod
+    container_name: spk-gis-prod-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Server-side fetch di dalam jaringan Compose.
+      NEST_API_URL: http://backend:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - spk-gis-prod
+
+volumes:
+  pgdata_prod:
+
+networks:
+  spk-gis-prod:

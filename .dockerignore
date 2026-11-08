@@ -1,0 +1,14 @@
+# Build context dibatasi ke file yang dibutuhkan image.
+.git
+.gitmodules
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/.turbo
+backend/src/generated
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+.DS_Store
