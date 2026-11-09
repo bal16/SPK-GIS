@@ -1,15 +1,15 @@
 # SPK-GIS — Sistem Pendukung Keputusan Prioritas Pemeliharaan Gedung
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![MapLibre](https://img.shields.io/badge/MapLibre_GL-295DAA?logo=maplibre&logoColor=white)](https://maplibre.org/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Podman](https://img.shields.io/badge/Podman-Compose-892CA0?logo=podman&logoColor=white)](https://podman.io/)
+[![Next.js](https://shieldcn.dev/badge/Next.js-16-000000.svg?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://shieldcn.dev/badge/React-19-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://shieldcn.dev/badge/TypeScript-5-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://shieldcn.dev/badge/Tailwind_CSS-4-06B6D4.svg?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![NestJS](https://shieldcn.dev/badge/NestJS-11-E0234E.svg?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Prisma](https://shieldcn.dev/badge/Prisma-7-2D3748.svg?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://shieldcn.dev/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![MapLibre](https://shieldcn.dev/badge/MapLibre_GL-295DAA.svg?logo=maplibre&logoColor=white)](https://maplibre.org/)
+[![Docker](https://shieldcn.dev/badge/Docker-Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Podman](https://shieldcn.dev/badge/Podman-Compose-892CA0.svg?logo=podman&logoColor=white)](https://podman.io/)
 
 SPK-GIS adalah aplikasi berbasis peta yang membantu pengelola aset menentukan **gedung mana yang perlu dipelihara lebih dulu**. Penilaian dilakukan secara otomatis memakai metode **SAW (Simple Additive Weighting)**, lalu hasilnya ditampilkan dalam bentuk peringkat dan sebaran lokasi gedung di peta.
 
