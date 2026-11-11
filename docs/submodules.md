@@ -65,6 +65,16 @@ git submodule update --init --recursive
 * **Forgot to commit gitlink:** `git status` shows `M backend` / `M frontend` but GitHub still shows the old commit -> you haven't run `add/commit/push` yet.
 * **Mixed staged state (`MM backend`):** re-run `git add backend frontend` before committing.
 * **Remote is ahead of local:** run `git fetch --recurse-submodules origin` first, then `update --remote`.
+* **Detached HEAD state:** Running `git submodule update` without `--merge` or `--rebase` may leave submodules in detached HEAD. Switch back to your working branch:
+  ```bash
+  git -C backend checkout main
+  git -C frontend checkout main
+  ```
+* **Uncommitted submodule changes preventing sync:** Check status inside the submodule and commit or stash changes before syncing:
+  ```bash
+  git -C backend status
+  git -C frontend status
+  ```
 * **Check per submodule manually:**
   ```bash
   git -C backend fetch origin && git -C backend log --oneline main..origin/main
@@ -73,5 +83,14 @@ git submodule update --init --recursive
 
 ## Recommended workflow
 
-* Do daily work in the `backend` / `frontend` repos directly.
-* Only update pointers in `SPK-GIS` on release / demo / submission, after local tests pass.
+* **Feature Development:**
+  * You can work directly inside the `backend` and `frontend` folders—they are full Git repositories linked to their respective upstream repos.
+  * Create feature branches directly inside each submodule (`git -C backend checkout -b feat/...`).
+  * Run local checks before pushing:
+    * **Backend:** `pnpm test` (unit tests) and `pnpm test:e2e` (end-to-end tests with PostgreSQL).
+    * **Frontend:** `bun run lint` and `bun run build`.
+  * Push and open Pull Requests against upstream (`bal16/nestjs_gis_spk` and `bal16/next_gis_spk`).
+* **Root Submodule Pointer Sync:**
+  * Avoid committing submodule pointers pinned to experimental feature branches onto the root `main` branch.
+  * Once feature PRs are merged into each submodule's `main` branch, update the root `SPK-GIS` pointers to the new merged commits.
+  * Only commit and push pointers in `SPK-GIS` on release, integration milestones, or after verification passes.
